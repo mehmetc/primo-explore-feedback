@@ -3,7 +3,20 @@ app.component('prmMainMenuAfter', {
     bindings: {
         parentCtrl: '<'
     },
-    templateUrl: `custom/${window.appConfig['vid']}/html/feedback_button.html`,
+    template: `
+    <md-button aria-label="Send feedback"
+               tabindex="0"
+               class="zero-margin flex-button multi-line-button button-over-dark"
+               layout="column"
+               layout-align="center center"
+               ng-click="$ctrl.displaySendFeedback()">
+
+        <span class="item-content">feedback</span>
+        <md-tooltip md-direction="down" md-delay="400" class="multi-row-tooltip slide-tooltip-anim">
+            <span class="item-description popover animate-popover">FEEDBACK</span>
+        </md-tooltip>
+    </md-button>
+    `,
     controller: ['$mdToast', '$localForage', '$mdDialog', '$http', function($mdToast, $localForage, $mdDialog, $http) {
         var self = this;
         var uSms = this.parentCtrl.userSessionManagerService;
@@ -16,12 +29,46 @@ app.component('prmMainMenuAfter', {
               }
             } else {
                 self.displaySendFeedback = displaySendFeedback;
-            }            
+            }
         }
 
         var displaySendFeedback = function() {
             $mdDialog.show({
-                templateUrl: `custom/${window.appConfig['vid']}/html/feedback_form.html`,
+                template: `
+                <div layout="row" layout-wrap layout-margin layout-align="center">
+                    <md-dialog id='lbsFeedbackForm' aria-label='feedback'>
+                        <md-toolbar>
+                            <div class="md-toolbar-tools">
+                                <h2>Feedback</h2>
+                                <span flex></span>
+                                <md-button class="md-icon-button" ng-click="cancelSendFeedback()">
+                                    <md-icon md-svg-icon="navigation:ic_close_24px" aria-label="Close dialog"></md-icon>
+                                </md-button>
+                            </div>
+                        </md-toolbar>
+
+                        <md-dialog-content>
+                            <div class="md-dialog-content">
+                                <input type="hidden" name='subject' ng-model='feedback.subject'>
+                                <md-input-container class="md-block">
+                                    <label>EMail</label>
+                                    <input type="email" name='replyTo' title='Your email. So we can keep you up to date' placeholder='john.doe@kuleuven.be' required ng-model='feedback.replyTo'>
+                                </md-input-container>
+
+                                <md-input-container>
+                                    <label>Description</label>
+                                    <textarea name="message" placeholder="Describe what the problem is" md-maxlength="500" required md-no-asterisk rows="8" cols="80" ng-model="feedback.message"></textarea>
+                                </md-input-container>
+                            </div>
+                        </md-dialog-content>
+
+                        <md-dialog-actions layout="row">
+                            <md-button class="md-raised" ng-click="cancelSendFeedback()">Cancel</md-button>
+                            <md-button class="md-raised md-primary" ng-click='sendFeedback()'>Submit</md-button>
+                        </md-dialog-actions>
+                    </md-dialog>
+                </div>
+                `,
                 controller: function($scope, $mdDialog) {
                     $scope.feedback = {
                         replyTo: (self.session.user.email || ''),
