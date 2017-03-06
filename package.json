@@ -1,6 +1,6 @@
 {
     "name": "primo-explore-feedback",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Add a feedback button to prmMainMenu",
     "main": "js/feedback.js",
     "scripts": {
