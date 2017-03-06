@@ -17,12 +17,13 @@ app.component('prmMainMenuAfter', {
         </md-tooltip>
     </md-button>
     `,
-    controller: ['$mdToast', '$localForage', '$mdDialog', '$http', function($mdToast, $localForage, $mdDialog, $http) {
+    controller: ['$q', '$mdToast', '$localForage', '$mdDialog', '$http', function($q, $mdToast, $localForage, $mdDialog, $http) {
         var self = this;
         var uSms = this.parentCtrl.userSessionManagerService;
 
+        self.session = {};
         self.$onInit = function() {
-            self.session = session(uSms);
+            //self.session = session(uSms);
             if (typeof feedbackServiceURL === 'undefined') {
               self.displaySendFeedback = function(){
                 alert('Please set the "feedbackServiceURL" variable');
@@ -33,6 +34,8 @@ app.component('prmMainMenuAfter', {
         }
 
         var displaySendFeedback = function() {
+            self.session = session(uSms);
+
             $mdDialog.show({
                 template: `
                 <div layout="row" layout-wrap layout-margin layout-align="center">
@@ -71,7 +74,7 @@ app.component('prmMainMenuAfter', {
                 `,
                 controller: function($scope, $mdDialog) {
                     $scope.feedback = {
-                        replyTo: (self.session.user.email || ''),
+                        replyTo: self.session.user.email,
                         message: '',
                         subject: 'feedback'
                     };
@@ -92,27 +95,39 @@ app.component('prmMainMenuAfter', {
                             ip: self.session.ip.address,
                             type: 'feedback',
                             feedback: $scope.feedback.message,
-                            email: $scope.feedback.replyTo,
+                            email: $scope.feedback.replyTo || self.session.user.email,
                             userAgent: navigator.userAgent
                         };
-
+                        
+$http({
+  method:'POST',
+  url:feedbackServiceURL,
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  cache: false,
+  data: data
+}).then(function(response){
+  $mdToast.showSimple('Thank you for your feedback!');
+}, function(response){
+  $mdToast.showSimple('Unable to submit feedback.');
+});
                         //$http is not usable today because of a sticky Authorization header
-                        let request = new Request(feedbackServiceURL, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            mode: 'cors',
-                            cache: 'no-cache',
-                            body: JSON.stringify(data)
-                        });
-                        fetch(request)
-                            .then((response) => {
-                                $mdToast.showSimple('Thank you for your feedback!');
-                            }, (response) => {
-                                console.log(response);
-                                $mdToast.showSimple('submitting feedback');
-                            });
+                        // let request = new Request(feedbackServiceURL, {
+                        //     method: 'POST',
+                        //     headers: {
+                        //         'Content-Type': 'application/json'
+                        //     },
+                        //     mode: 'cors',
+                        //     cache: 'no-cache',
+                        //     body: JSON.stringify(data)
+                        // });
+                        // fetch(request)
+                        //     .then((response) => {
+                        //         $mdToast.showSimple('Thank you for your feedback!');
+                        //     }, (response) => {
+                        //         $mdToast.showSimple('submitting feedback');
+                        //     });
 
                         $mdDialog.hide(answer);
                     };
@@ -128,6 +143,7 @@ app.component('prmMainMenuAfter', {
         }
 
         var session = function(uSms) {
+            console.log('get session called', self.session);
             let jwtData = uSms.jwtUtilService.getDecodedToken();
             let s = {
                 id: jwtData.jti,
@@ -150,16 +166,19 @@ app.component('prmMainMenuAfter', {
                         return uSms.getUserName().length > 0
                     },
                     isOnCampus: function() {
-                        return jwtData.onCampus == "true"
+                        return jwtData.onCampus == "true" ? true : false
                     }
                 }
             }
 
             $localForage.getItem('userDetails').then(function(data) {
-                s.user.email = data ? data.email : ''
                 s.view.interfaceLanguage = data ? data.interfaceLanguage : '';
+                s.user.email = data ? data.email : '';
             });
+
             return s
-        }
+        };
+
+        self.session = session(uSms);
     }]
 });
